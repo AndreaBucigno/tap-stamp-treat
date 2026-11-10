@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ScanRouteImport } from './routes/scan'
 import { Route as CardTokenRouteImport } from './routes/card.$token'
 import { Route as JoinSlugRouteImport } from './routes/join.$slug'
 
@@ -30,6 +31,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScanRoute = ScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CardTokenRoute = CardTokenRouteImport.update({
   id: '/card/$token',
   path: '/card/$token',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/scan': typeof ScanRoute
   '/card/$token': typeof CardTokenRoute
   '/join/$slug': typeof JoinSlugRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/scan': typeof ScanRoute
   '/card/$token': typeof CardTokenRoute
   '/join/$slug': typeof JoinSlugRoute
 }
@@ -60,21 +68,31 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/scan': typeof ScanRoute
   '/card/$token': typeof CardTokenRoute
   '/join/$slug': typeof JoinSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/card/$token' | '/join/$slug'
+  fullPaths:
+    '/' | '/auth' | '/dashboard' | '/scan' | '/card/$token' | '/join/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/card/$token' | '/join/$slug'
-  id: '__root__' | '/' | '/auth' | '/dashboard' | '/card/$token' | '/join/$slug'
+  to: '/' | '/auth' | '/dashboard' | '/scan' | '/card/$token' | '/join/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/scan'
+    | '/card/$token'
+    | '/join/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
+  ScanRoute: typeof ScanRoute
   CardTokenRoute: typeof CardTokenRoute
   JoinSlugRoute: typeof JoinSlugRoute
 }
@@ -102,6 +120,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/scan': {
+      id: '/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof ScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/card/$token': {
       id: '/card/$token'
       path: '/card/$token'
@@ -123,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
+  ScanRoute: ScanRoute,
   CardTokenRoute: CardTokenRoute,
   JoinSlugRoute: JoinSlugRoute,
 }
