@@ -14,13 +14,152 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cards: {
+        Row: {
+          created_at: string
+          customer_name: string
+          id: string
+          last_stamp_at: string | null
+          rewards_count: number
+          stamps: number
+          token: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          id?: string
+          last_stamp_at?: string | null
+          rewards_count?: number
+          stamps?: number
+          token?: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          id?: string
+          last_stamp_at?: string | null
+          rewards_count?: number
+          stamps?: number
+          token?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cards_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          card_id: string
+          created_at: string
+          description: string
+          id: string
+          kind: string
+          venue_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          description: string
+          id?: string
+          kind: string
+          venue_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          kind?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+          stamps_required: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+          stamps_required?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+          stamps_required?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_stamp: {
+        Args: { _token: string }
+        Returns: {
+          customer_name: string
+          stamps: number
+          stamps_required: number
+        }[]
+      }
+      get_card: {
+        Args: { _token: string }
+        Returns: {
+          created_at: string
+          customer_name: string
+          rewards_count: number
+          stamps: number
+          stamps_required: number
+          venue_name: string
+        }[]
+      }
+      get_venue_public: {
+        Args: { _slug: string }
+        Returns: {
+          name: string
+          stamps_required: number
+        }[]
+      }
+      join_venue: { Args: { _name: string; _slug: string }; Returns: string }
+      redeem_reward: {
+        Args: { _description: string; _kind: string; _token: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
