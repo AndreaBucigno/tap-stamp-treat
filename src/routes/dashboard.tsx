@@ -67,7 +67,7 @@ function CreateVenue({ userId }: { userId: string }) {
     const slug = `${slugify(name) || "locale"}-${Math.random().toString(36).slice(2, 6)}`;
     const { error } = await supabase.from("venues").insert({ name: name.trim(), slug, owner_id: userId });
     setBusy(false);
-    if (error) return toast.error("Impossibile creare il locale");
+    if (error) { toast.error("Impossibile creare il locale"); return; }
     qc.invalidateQueries({ queryKey: ["venue"] });
   }
   return (

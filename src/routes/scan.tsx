@@ -41,7 +41,7 @@ function ScanPage() {
   async function handle(text: string) {
     if (busy || result) return;
     const token = text.match(UUID_RE)?.[0];
-    if (!token) return toast.error("QR non riconosciuto");
+    if (!token) { toast.error("QR non riconosciuto"); return; }
     setBusy(true);
     const { data, error } = await supabase.rpc("add_stamp", { _token: token });
     if (error) {
@@ -87,7 +87,7 @@ function ResultView({ r, onDone }: { r: Result; onDone: () => void }) {
     setBusy(true);
     const { error } = await supabase.rpc("redeem_reward", { _token: r.token, _kind: kind, _description: description });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(`Premio consegnato a ${r.name}!`);
     onDone();
   }

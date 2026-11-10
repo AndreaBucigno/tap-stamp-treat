@@ -43,7 +43,7 @@ function JoinPage() {
     setBusy(true);
     const { data, error } = await supabase.rpc("join_venue", { _slug: slug, _name: name });
     setBusy(false);
-    if (error || !data) return toast.error(error?.message ?? "Errore");
+    if (error || !data) { toast.error(error?.message ?? "Errore"); return; }
     localStorage.setItem(`timbrino:${slug}`, data);
     navigate({ to: "/card/$token", params: { token: data } });
   }
