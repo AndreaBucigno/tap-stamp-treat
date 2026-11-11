@@ -9,13 +9,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "Il mio locale — Timbrino" },
       { name: "description", content: "Gestisci le carte fedeltà del tuo locale." },
       { property: "og:title", content: "Il mio locale — Timbrino" },
       { property: "og:description", content: "Gestisci le carte fedeltà del tuo locale." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Dashboard,
@@ -28,9 +30,13 @@ function slugify(s: string) {
 function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [user, loading, navigate]);
+  const qc = useQueryClient();
+  async function signOut() {
+    await qc.cancelQueries();
+    qc.clear();
+    await supabase.auth.signOut();
+    await navigate({ to: "/auth", replace: true });
+  }
 
   const venueQ = useQuery({
     queryKey: ["venue", user?.id],
@@ -43,12 +49,13 @@ function Dashboard() {
   });
 
   if (loading || !user || venueQ.isLoading) return <div className="p-10 text-center text-muted-foreground">Caricamento…</div>;
+  if (venueQ.isError) return <div className="p-10 text-center"><p>Impossibile caricare il locale.</p><Button onClick={() => venueQ.refetch()} className="mt-4">Riprova</Button></div>;
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-8">
       <header className="flex items-center justify-between">
         <Link to="/" className="font-display text-xl text-accent">Timbrino</Link>
-        <Button variant="ghost" size="sm" onClick={() => supabase.auth.signOut()}>
+        <Button variant="ghost" size="sm" onClick={signOut}>
           <LogOut /> Esci
         </Button>
       </header>
@@ -90,7 +97,7 @@ function VenueView({ venue }: { venue: Venue }) {
   const cardsQ = useQuery({
     queryKey: ["cards", venue.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("cards").select("id, customer_name, stamps, rewards_count, last_stamp_at").order("last_stamp_at", { ascending: false, nullsFirst: false }).limit(200);
+      const { data, error } = await supabase.from("cards").select("id, customer_name, stamps, rewards_count, last_stamp_at").eq("venue_id", venue.id).order("last_stamp_at", { ascending: false, nullsFirst: false }).limit(200);
       if (error) throw error;
       return data;
     },

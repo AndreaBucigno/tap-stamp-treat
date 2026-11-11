@@ -14,6 +14,8 @@ export const Route = createFileRoute("/card/$token")({
       { property: "og:title", content: "La mia carta fedeltà" },
       { property: "og:description", content: "Mostra il QR al bancone ad ogni acquisto." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: CardPage,
@@ -35,6 +37,7 @@ function CardPage() {
   });
 
   if (q.isLoading) return <div className="p-10 text-center text-muted-foreground">Caricamento…</div>;
+  if (q.isError) return <div className="p-10 text-center">Impossibile caricare la carta. Controlla la connessione e riapri il link.</div>;
   const c = q.data;
   if (!c) return <div className="p-10 text-center">Carta non trovata.</div>;
   const complete = c.stamps >= c.stamps_required;
