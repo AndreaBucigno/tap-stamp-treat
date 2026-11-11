@@ -14,6 +14,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Accedi all'area titolare di Timbrino." },
       { property: "og:title", content: "Accedi — Timbrino" },
       { property: "og:description", content: "Accedi all'area titolare di Timbrino." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,
@@ -38,7 +40,7 @@ function AuthPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin + "/dashboard" },
+        options: { emailRedirectTo: window.location.origin + "/auth" },
       });
       if (error) toast.error(error.message);
       else toast.success("Controlla la tua email per confermare l'account.");
@@ -69,9 +71,9 @@ function AuthPage() {
           <Input type="password" required minLength={6} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <Button disabled={busy} className="w-full rounded-full">{mode === "in" ? "Accedi" : "Crea account"}</Button>
         </form>
-        <button type="button" onClick={() => setMode(mode === "in" ? "up" : "in")} className="mt-5 w-full text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <Button variant="link" type="button" onClick={() => setMode(mode === "in" ? "up" : "in")} className="mt-5 h-auto w-full whitespace-normal text-sm text-muted-foreground underline-offset-4 hover:underline">
           {mode === "in" ? "Non hai un account? Registrati" : "Hai già un account? Accedi"}
-        </button>
+        </Button>
       </div>
     </main>
   );

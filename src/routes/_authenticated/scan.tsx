@@ -1,48 +1,48 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Gift, Percent, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StampGrid } from "@/components/StampGrid";
 import { cn } from "@/lib/utils";
+import { cardToken, rewardDescription } from "@/lib/loyalty";
 
 const QrScanner = lazy(() => import("@/components/QrScanner"));
 
-export const Route = createFileRoute("/scan")({
+export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({
     meta: [
       { title: "Scansiona carta — Timbrino" },
       { name: "description", content: "Scansiona la carta del cliente per aggiungere un timbro." },
       { property: "og:title", content: "Scansiona carta — Timbrino" },
       { property: "og:description", content: "Aggiungi timbri alle carte dei clienti." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ScanPage,
 });
 
-const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-
 type Result = { token: string; name: string; stamps: number; required: number; full: boolean; justStamped: boolean };
 
 function ScanPage() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [manual, setManual] = useState("");
+  const [cameraError, setCameraError] = useState(false);
+  const inFlight = useRef(false);
   useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [user, loading, navigate]);
 
   async function handle(text: string) {
-    if (busy || result) return;
-    const token = text.match(UUID_RE)?.[0];
+    if (inFlight.current || result) return;
+    const token = cardToken(text);
     if (!token) { toast.error("QR non riconosciuto"); return; }
     setBusy(true);
+    inFlight.current = true;
+    try {
     const { data, error } = await supabase.rpc("add_stamp", { _token: token });
     if (error) {
       if (error.message.includes("Premio già raggiunto")) {
@@ -54,7 +54,8 @@ function ScanPage() {
       const r = data[0];
       setResult({ token, name: r.customer_name, stamps: r.stamps, required: r.stamps_required, full: r.stamps >= r.stamps_required, justStamped: true });
     }
-    setBusy(false);
+    } catch { toast.error("Connessione non disponibile. Riprova."); }
+    finally { setBusy(false); inFlight.current = false; }
   }
 
   return (
@@ -62,16 +63,21 @@ function ScanPage() {
       <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> Torna al locale</Link>
       <h1 className="mt-4 text-3xl font-bold">Scansiona la carta</h1>
       {!result ? (
-        <div className="mt-5 aspect-square">
-          {mounted && (
+        <div className="mt-5">
+          {mounted && !cameraError && (
             <Suspense fallback={<div className="h-full rounded-3xl bg-muted" />}>
-              <QrScanner onScan={handle} paused={busy} />
+              <QrScanner onScan={handle} paused={busy} onError={() => setCameraError(true)} />
             </Suspense>
           )}
-          <p className="mt-3 text-center text-sm text-muted-foreground">Inquadra il QR sul telefono del cliente</p>
+          {cameraError ? <p className="rounded-xl bg-secondary p-4 text-sm">Fotocamera non disponibile. Consenti l’accesso alla fotocamera oppure inserisci il link della carta.</p> : <p className="mt-3 text-center text-sm text-muted-foreground">Inquadra il QR sul telefono del cliente</p>}
+          <form className="mt-6 space-y-3" onSubmit={(e) => { e.preventDefault(); void handle(manual); }}>
+            <label htmlFor="card-link" className="text-sm font-medium">Link o codice della carta</label>
+            <Input id="card-link" value={manual} onChange={(e) => setManual(e.target.value)} required />
+            <Button disabled={busy || !manual.trim()} className="w-full">{busy ? "Registrazione…" : "Aggiungi timbro"}</Button>
+          </form>
         </div>
       ) : (
-        <ResultView r={result} onDone={() => setResult(null)} />
+        <ResultView r={result} onDone={() => { setResult(null); setManual(""); }} />
       )}
     </main>
   );
@@ -83,7 +89,8 @@ function ResultView({ r, onDone }: { r: Result; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
 
   async function redeem() {
-    const description = kind === "discount" ? `Sconto del ${desc}%` : desc;
+    const description = rewardDescription(kind, desc);
+    if (!description) { toast.error("Inserisci un premio o una percentuale tra 1 e 100."); return; }
     setBusy(true);
     const { error } = await supabase.rpc("redeem_reward", { _token: r.token, _kind: kind, _description: description });
     setBusy(false);
@@ -106,16 +113,16 @@ function ResultView({ r, onDone }: { r: Result; onDone: () => void }) {
           <h3 className="text-2xl font-bold">Carta completa! Cosa regali?</h3>
           <div className="mt-4 grid grid-cols-2 gap-2">
             {([["gift", Gift, "Omaggio"], ["discount", Percent, "Sconto %"]] as const).map(([k, Icon, l]) => (
-              <button key={k} type="button" onClick={() => { setKind(k); setDesc(""); }}
+              <Button key={k} type="button" variant="ghost" aria-pressed={kind === k} onClick={() => { setKind(k); setDesc(""); }}
                 className={cn("flex items-center justify-center gap-2 rounded-2xl border-2 p-3 font-medium", kind === k ? "border-accent bg-accent text-accent-foreground" : "border-primary-foreground/25")}>
                 <Icon className="size-4" /> {l}
-              </button>
+              </Button>
             ))}
           </div>
           <Input className="mt-3 bg-card text-card-foreground" value={desc} onChange={(e) => setDesc(e.target.value)}
             type={kind === "discount" ? "number" : "text"} min={1} max={100}
             placeholder={kind === "discount" ? "Percentuale, es. 20" : "Es. Un cappuccino e cornetto"} />
-          <Button disabled={busy || !desc.trim()} onClick={redeem} variant="accent" size="lg" className="mt-4 w-full">Consegna premio e azzera carta</Button>
+          <Button disabled={busy || !rewardDescription(kind, desc)} onClick={redeem} variant="accent" size="lg" className="mt-4 h-auto min-h-10 w-full whitespace-normal">Consegna premio e azzera carta</Button>
         </div>
       ) : null}
 

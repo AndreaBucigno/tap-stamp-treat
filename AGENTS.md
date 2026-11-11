@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Keep owner pages under the client-only authenticated layout and observe session changes once in the root; this avoids refresh redirects and competing listeners.
+- Loyalty mutations must check the authenticated venue owner inside database functions and deny anonymous execution; the public card token grants read access only.
+- Share card-token parsing and reward validation in browser-safe helpers so camera and manual entry follow the same rules.

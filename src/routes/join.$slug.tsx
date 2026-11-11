@@ -13,6 +13,8 @@ export const Route = createFileRoute("/join/$slug")({
       { name: "description", content: "Ottieni la carta fedeltà digitale del locale." },
       { property: "og:title", content: "Ricevi la tua carta fedeltà" },
       { property: "og:description", content: "Raccogli timbri e ottieni premi." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: JoinPage,
@@ -44,11 +46,12 @@ function JoinPage() {
     const { data, error } = await supabase.rpc("join_venue", { _slug: slug, _name: name });
     setBusy(false);
     if (error || !data) { toast.error(error?.message ?? "Errore"); return; }
-    localStorage.setItem(`timbrino:${slug}`, data);
+    try { localStorage.setItem(`timbrino:${slug}`, data); } catch { /* The card remains usable when storage is disabled. */ }
     navigate({ to: "/card/$token", params: { token: data } });
   }
 
   if (venueQ.isLoading) return <div className="p-10 text-center text-muted-foreground">Caricamento…</div>;
+  if (venueQ.isError) return <div className="p-10 text-center">Impossibile caricare il locale. Controlla la connessione e riapri il link.</div>;
   if (!venueQ.data) return <div className="p-10 text-center">Locale non trovato.</div>;
 
   return (
