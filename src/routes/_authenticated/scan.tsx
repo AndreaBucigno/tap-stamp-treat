@@ -12,7 +12,7 @@ import { cardToken, rewardDescription } from "@/lib/loyalty";
 
 const QrScanner = lazy(() => import("@/components/QrScanner"));
 
-export const Route = createFileRoute("/scan")({
+export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({
     meta: [
       { title: "Scansiona carta — Timbrino" },
