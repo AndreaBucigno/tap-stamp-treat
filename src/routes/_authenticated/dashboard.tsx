@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { ScanLine, LogOut, Copy } from "lucide-react";
+import { ScanLine, LogOut, Copy, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,18 +48,32 @@ function Dashboard() {
     },
   });
 
-  if (loading || !user || venueQ.isLoading) return <div className="p-10 text-center text-muted-foreground">Caricamento…</div>;
+  const extraQ = useQuery({
+    queryKey: ["role-extra", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [staff, admin] = await Promise.all([
+        supabase.rpc("my_staff_venue"),
+        supabase.from("user_roles").select("role").eq("role", "admin").maybeSingle(),
+      ]);
+      if (staff.error) throw staff.error;
+      return { staffVenue: staff.data?.[0] ?? null, isAdmin: !!admin.data };
+    },
+  });
+
+  if (loading || !user || venueQ.isLoading || extraQ.isLoading) return <div className="p-10 text-center text-muted-foreground">Caricamento…</div>;
   if (venueQ.isError) return <div className="p-10 text-center"><p>Impossibile caricare il locale.</p><Button onClick={() => venueQ.refetch()} className="mt-4">Riprova</Button></div>;
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-8">
       <header className="flex items-center justify-between">
         <Link to="/" className="font-display text-xl text-accent">Timbrino</Link>
-        <Button variant="ghost" size="sm" onClick={signOut}>
-          <LogOut /> Esci
-        </Button>
+        <div className="flex gap-1">
+          {extraQ.data?.isAdmin && <Button asChild variant="ghost" size="sm"><Link to="/admin"><Shield /> Admin</Link></Button>}
+          <Button variant="ghost" size="sm" onClick={signOut}><LogOut /> Esci</Button>
+        </div>
       </header>
-      {venueQ.data ? <VenueView venue={venueQ.data} /> : <CreateVenue userId={user.id} />}
+      {venueQ.data ? <VenueView venue={venueQ.data} /> : extraQ.data?.staffVenue ? <StaffView name={extraQ.data.staffVenue.name} /> : <CreateVenue userId={user.id} />}
     </main>
   );
 }
@@ -139,6 +153,8 @@ function VenueView({ venue }: { venue: Venue }) {
         </div>
       </div>
 
+      <StaffManager venueId={venue.id} />
+
       <div>
         <h2 className="text-2xl font-semibold">Clienti</h2>
         <ul className="mt-3 divide-y rounded-2xl border bg-card">
@@ -156,6 +172,65 @@ function VenueView({ venue }: { venue: Venue }) {
           ))}
         </ul>
       </div>
+    </div>
+  );
+}
+
+function StaffView({ name }: { name: string }) {
+  return (
+    <div className="mt-10 space-y-6 text-center">
+      <p className="text-sm text-muted-foreground">Collaboratore di</p>
+      <h1 className="text-4xl font-bold">{name}</h1>
+      <Button asChild variant="accent" size="lg" className="h-14 w-full text-base">
+        <Link to="/scan"><ScanLine className="!size-5" /> Scansiona tessera cliente</Link>
+      </Button>
+    </div>
+  );
+}
+
+function StaffManager({ venueId }: { venueId: string }) {
+  const qc = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const q = useQuery({
+    queryKey: ["staff", venueId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("venue_staff").select("id, email").eq("venue_id", venueId).order("created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.rpc("add_staff", { _email: email });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setEmail("");
+    toast.success("Collaboratore aggiunto");
+    qc.invalidateQueries({ queryKey: ["staff", venueId] });
+  }
+  async function remove(id: string) {
+    const { error } = await supabase.rpc("remove_staff", { _id: id });
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["staff", venueId] });
+  }
+  return (
+    <div className="rounded-3xl border bg-card p-6 shadow-soft">
+      <h2 className="text-2xl font-semibold">Collaboratori</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Possono solo scansionare le tessere e consegnare i premi. Devono prima registrarsi con la loro email.</p>
+      <form onSubmit={add} className="mt-4 flex gap-2">
+        <Input type="email" required placeholder="email@esempio.it" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Button disabled={busy}>Aggiungi</Button>
+      </form>
+      <ul className="mt-4 divide-y">
+        {(q.data ?? []).map((s) => (
+          <li key={s.id} className="flex items-center justify-between py-2 text-sm">
+            {s.email}
+            <Button variant="ghost" size="icon" aria-label={`Rimuovi ${s.email}`} onClick={() => remove(s.id)}><Trash2 /></Button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

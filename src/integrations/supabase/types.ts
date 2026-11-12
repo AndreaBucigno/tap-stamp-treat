@@ -97,6 +97,56 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      venue_staff: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          user_id: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          user_id: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          user_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_staff_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venues: {
         Row: {
           created_at: string
@@ -129,6 +179,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_staff: { Args: { _email: string }; Returns: undefined }
       add_stamp: {
         Args: { _token: string }
         Returns: {
@@ -137,6 +188,20 @@ export type Database = {
           stamps_required: number
         }[]
       }
+      admin_venues: {
+        Args: never
+        Returns: {
+          cards_count: number
+          created_at: string
+          id: string
+          name: string
+          owner_email: string
+          rewards_total: number
+          staff_count: number
+          stamps_total: number
+        }[]
+      }
+      can_operate: { Args: { _venue: string }; Returns: boolean }
       get_card: {
         Args: { _token: string }
         Returns: {
@@ -155,14 +220,30 @@ export type Database = {
           stamps_required: number
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       join_venue: { Args: { _name: string; _slug: string }; Returns: string }
+      my_staff_venue: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          stamps_required: number
+        }[]
+      }
       redeem_reward: {
         Args: { _description: string; _kind: string; _token: string }
         Returns: undefined
       }
+      remove_staff: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -289,6 +370,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
