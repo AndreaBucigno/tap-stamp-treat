@@ -32,7 +32,7 @@ const steps = [
 ];
 const features = ["Clienti illimitati", "Premi configurabili", "Storico timbri", "Nessuna app da scaricare", "Funziona con ogni telefono", "Nessun costo per scansione"];
 const plan = ["Tessere digitali per i clienti", "Timbri tramite QR", "Premi configurabili", "Dashboard dedicata", "Nessun costo per scansione", "Assistenza inclusa"];
-const faqs = [
+const faqs: [string, string][] = [
   ["I clienti devono scaricare un'app?", "No. La tessera si apre dal browser del telefono e si può salvare sulla schermata Home in un tocco."],
   ["Funziona per la mia attività?", "Sì: barbieri, parrucchieri, centri estetici, bar, ristoranti e negozi. Ogni visita o acquisto vale un timbro."],
   ["Ci sono costi per ogni cliente?", "No. Il piano è unico: clienti e scansioni illimitati a 9,90 € al mese."],
